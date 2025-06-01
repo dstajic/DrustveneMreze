@@ -72,53 +72,77 @@ namespace DrustvenaMreza.Controllers
         [HttpPost]
         public ActionResult<Korisnik> Create([FromBody] Korisnik newKorisnik)
         {
-            KorisniciRepo korisniciRepo = new KorisniciRepo();
+            UserDBRepo userDBRepo = new UserDBRepo();
+
             if (string.IsNullOrWhiteSpace(newKorisnik.username) || string.IsNullOrWhiteSpace(newKorisnik.ime) || string.IsNullOrWhiteSpace(newKorisnik.prezime))
             {
                 return BadRequest();
             }
-
-            newKorisnik.id = SracunajNovID(KorisniciRepo.Data.Keys.ToList());
-            KorisniciRepo.Data[newKorisnik.id] = newKorisnik;
-            korisniciRepo.Save();
-
-            return Ok(newKorisnik);
+            try
+            {
+                userDBRepo.CreateNewUser(newKorisnik);
+                return Ok(newKorisnik);
+            }
+            catch (SqliteException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Database error: {ex.Message}");
+            }
+            catch (FormatException ex)
+            {
+                return BadRequest($"Data formatting error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error: {ex.Message}");
+            }
         }
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
+        {
+            UserDBRepo userDBRepo = new UserDBRepo();
+            try
+            {
+                userDBRepo.DeleteById(id);
+                return NoContent();
+            }
+            catch (SqliteException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Database error: {ex.Message}");
+            }
+            catch (FormatException ex)
+            {
+                return BadRequest($"Data formatting error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error: {ex.Message}");
+            }
+        }
+
         [HttpPut("{id}")]
         public ActionResult<Korisnik> Update(int id, [FromBody] Korisnik uKorisnik)
         {
-            KorisniciRepo korisniciRepo = new KorisniciRepo();
-            if (string.IsNullOrWhiteSpace(uKorisnik.username) || string.IsNullOrWhiteSpace(uKorisnik.ime) || string.IsNullOrWhiteSpace(uKorisnik.prezime))
+            try
             {
-                return BadRequest();
+                UserDBRepo userDBRepo = new UserDBRepo();
+                userDBRepo.UpdateByID(id,uKorisnik);
+                uKorisnik.id = id;
+                return Ok(uKorisnik);
             }
-            if (!KorisniciRepo.Data.ContainsKey(id))
+            catch (SqliteException ex)
             {
-                return NotFound();
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Database error: {ex.Message}");
             }
-
-            Korisnik korisnik = KorisniciRepo.Data[id];
-            korisnik.username = uKorisnik.username;
-            korisnik.ime = uKorisnik.ime;
-            korisnik.prezime = uKorisnik.prezime;
-            korisniciRepo.Save();
-
-            return Ok(korisnik);
+            catch (FormatException ex)
+            {
+                return BadRequest($"Data formatting error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error: {ex.Message}");
+            }
         }
-        private int SracunajNovID(List<int> Idevi)
-        {
-            int maxId = 0;
-            foreach (int id in Idevi)
-            {
-                if (id > maxId)
-                {
-                    maxId = id;
-                }
 
-            }
-            return maxId + 1;
         }
-       
-    }
 
 }
