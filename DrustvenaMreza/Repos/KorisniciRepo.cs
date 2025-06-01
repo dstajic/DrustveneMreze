@@ -9,7 +9,7 @@ namespace DrustvenaMreza.Repos
 
         public KorisniciRepo()
         {
-            if(Data == null)
+            if (Data == null)
             {
                 Load();
             }
@@ -17,8 +17,8 @@ namespace DrustvenaMreza.Repos
         public void Load()
         {
             Data = new Dictionary<int, Korisnik>();
-            string [] lines = File.ReadAllLines(putanja);
-            foreach(var line in lines)
+            string[] lines = File.ReadAllLines(putanja);
+            foreach (var line in lines)
             {
                 string[] detalji = line.Split(',');
                 int id = int.Parse(detalji[0]);
@@ -26,7 +26,7 @@ namespace DrustvenaMreza.Repos
                 string ime = detalji[2];
                 string prezime = detalji[3];
                 DateTime datumRodjenja = DateTime.Parse(detalji[4]);
-                
+
                 Korisnik korisnik = new Korisnik(id, username, ime, prezime, datumRodjenja);
                 Data[id] = korisnik;
             }

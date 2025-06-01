@@ -1,6 +1,7 @@
 ﻿using DrustvenaMreza.Models;
 using DrustvenaMreza.Repos;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
@@ -14,20 +15,14 @@ namespace DrustvenaMreza.Controllers
     public class KorisnikController : ControllerBase
     {
 
-        /*[HttpGet]
-        public ActionResult<List<Korisnik>> GetAll()
-        {
-            KorisniciRepo korisniciRepo = new KorisniciRepo();
-
-            List<Korisnik> Korisnici = KorisniciRepo.Data.Values.ToList();
-            return Ok(Korisnici);
-        }*/
+        
         [HttpGet]
         public ActionResult<List<Korisnik>> GetAll()
         {
+            UserDBRepo userDBRepo = new UserDBRepo();
             try
             {
-                List<Korisnik> Korisnici = GetAllFromDataBase();
+                List<Korisnik> Korisnici = userDBRepo.GetAll();
                 return Ok(Korisnici);
             }
 
@@ -48,13 +43,31 @@ namespace DrustvenaMreza.Controllers
         [HttpGet("{id}")]
         public ActionResult<Korisnik> GetById(int id)
         {
-
-            KorisniciRepo korisniciRepo = new KorisniciRepo();
-            if (!KorisniciRepo.Data.ContainsKey(id))
+            try
             {
-                return NotFound();
+                UserDBRepo userDBRepo = new UserDBRepo();
+                Korisnik user = userDBRepo.GetByID(id);
+
+                if (user == null)
+                {
+                    return NotFound(); 
+                }
+
+                return Ok(user); 
             }
-            return Ok(KorisniciRepo.Data[id]);
+            catch (SqliteException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Database error: {ex.Message}");
+            }
+            catch (FormatException ex)
+            {
+                return BadRequest($"Data formatting error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error: {ex.Message}");
+            }
+
         }
         [HttpPost]
         public ActionResult<Korisnik> Create([FromBody] Korisnik newKorisnik)
@@ -105,33 +118,7 @@ namespace DrustvenaMreza.Controllers
             }
             return maxId + 1;
         }
-        private List<Korisnik> GetAllFromDataBase()
-        {
-            List<Korisnik> korisnici = new List<Korisnik>();
-
-            using SqliteConnection connection = new SqliteConnection("DataSource=Data/UserGroups.db");
-            connection.Open();
-
-            string query = "SELECT * FROM Users";
-            using SqliteCommand command = new SqliteCommand(query, connection);
-            using SqliteDataReader reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                korisnici.Add(new Korisnik(
-                      Convert.ToInt32(reader["Id"]),
-                      reader["Username"].ToString(),
-                      reader["Name"].ToString(),
-                      reader["Surname"].ToString(),
-                      DateTime.ParseExact(reader["Birthday"].ToString(), "yyyy-MM-dd", CultureInfo.InvariantCulture)
-                ));
-            }
-
-
-
-            return korisnici;
-
-        }
+       
     }
 
 }
